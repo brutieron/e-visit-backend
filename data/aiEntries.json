@@ -1,0 +1,42 @@
+[
+  {
+    "id": "1710000000001",
+    "intent": "what is e-visiton mission purpose",
+    "responses": {
+      "en": "e-Visiton is Kosovo’s first smart digital platform designed to transform tourism into an engine for local empowerment, diaspora connection, and authentic experiences. Our mission is to help you discover Kosovo and empower real people.",
+      "sq": "e-Visiton është platforma e parë digjitale inteligjente e Kosovës, e dizajnuar për ta shndërruar turizmin në një motor për fuqizimin lokal, lidhjen me diasporën dhe përvojat autentike. Misioni ynë është t'ju ndihmojmë të zbuloni Kosovën dhe të fuqizoni njerëzit e vërtetë."
+    }
+  },
+  {
+    "id": "1710000000002",
+    "intent": "boost business listing visibility ev-coins coins",
+    "responses": {
+      "en": "Local businesses can boost their visibility on e-Visiton using EV-Coins. A boost places your business on our homepage, in the cities overview, and in a special 'Handpicked for You' section. This is a great way to attract more visitors! You can manage this through your business dashboard.",
+      "sq": "Bizneset lokale mund të rrisin dukshmërinë e tyre në e-Visiton duke përdorur EV-Coins. Një 'boost' e vendos biznesin tuaj në faqen kryesore, në pasqyrën e qyteteve dhe në një seksion special 'Zgjedhur Për Ty'. Kjo është një mënyrë e shkëlqyer për të tërhequr më shumë vizitorë! Ju mund ta menaxhoni këtë përmes panelit tuaj të biznesit."
+    }
+  },
+  {
+    "id": "1710000000003",
+    "intent": "contact support help email phone",
+    "responses": {
+      "en": "You can contact the e-Visiton support team directly via email at support@e-visiton.com or by starting a WhatsApp chat from our support menu. We're always happy to help!",
+      "sq": "Mund ta kontaktoni ekipin e mbështetjes së e-Visiton direkt përmes emailit në support@e-visiton.com ose duke filluar një bisedë në WhatsApp nga menyja jonë e mbështetjes. Jemi gjithmonë të lumtur t'ju ndihmojmë!"
+    }
+  },
+  {
+    "id": "1710000000004",
+    "intent": "is it a mobile app pwa install",
+    "responses": {
+      "en": "e-Visiton is a Progressive Web App (PWA). This means it offers a fast, app-like experience directly in your browser without needing to download it from an app store. You can even add it to your home screen for quick access!",
+      "sq": "e-Visiton është një Progressive Web App (PWA). Kjo do të thotë se ofron një përvojë të shpejtë, si aplikacion, direkt në shfletuesin tuaj pa pasur nevojë ta shkarkoni nga një dyqan aplikacionesh. Mund ta shtoni edhe në ekranin tuaj kryesor për qasje të shpejtë!"
+    }
+  },
+  {
+    "id": "1710000000005",
+    "intent": "who_created_developer_made_by founder",
+    "responses": {
+      "en": "e-Visiton is a proud product of Shigjeta LLC, developed by our dedicated team to empower local tourism in Kosovo.",
+      "sq": "e-Visiton është një produkt krenar i Shigjeta LLC, i zhvilluar nga ekipi ynë i përkushtuar për të fuqizuar turizmin lokal në Kosovë."
+    }
+  }
+]
