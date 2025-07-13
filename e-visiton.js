@@ -3,6 +3,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
 const db = require('./config/db');
+const webhookRoute = require('./routes/webhookRoutes');
 
 dotenv.config();
 
@@ -10,10 +11,9 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ================================================
-//               SPECIAL WEBHOOK ROUTE
-// This MUST come before express.json() for Stripe
+//           SPECIAL WEBHOOK BODY PARSING
 // ================================================
-app.use('/api/webhook', require('./routes/webhookRoutes'));
+app.use('/api/webhook', express.raw({ type: 'application/json' }), webhookRoute);
 
 // ================================================
 //               STATIC FILE SERVING
@@ -22,10 +22,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 // ================================================
-//                   CORE MIDDLEWARE
+//               CORE MIDDLEWARE
 // ================================================
 app.use(cors());
-app.use(express.json());
+app.use(express.json()); // Comes AFTER webhook raw parser
 
 // ================================================
 //               DATABASE CONNECTION
@@ -52,7 +52,7 @@ app.use('/api/license', require('./routes/licenseRoutes'));
 app.use('/api/invoices', require('./routes/invoiceRoutes'));
 app.use('/api/offers', require('./routes/offerRoutes'));
 app.use('/api/ai', require('./routes/aiRoutes'));
-app.use('/api/ai-knowledge', require ('./routes/knowledgeRoutes'));
+app.use('/api/ai-knowledge', require('./routes/knowledgeRoutes'));
 app.use('/api/blogs', require('./routes/blogRoutes'));
 
 // ================================================

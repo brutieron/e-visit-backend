@@ -1,24 +1,31 @@
-// utils/nodemailer.js
+// utils/nodemailer.js (or utils/email.js) - Final Robust Version
 
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const puppeteer = require('puppeteer');
 const fs = require('fs').promises;
 const path = require('path');
 const dotenv = require('dotenv');
 dotenv.config();
 
-// Transporter configuration
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: { user: process.env.SMTP_EMAIL, pass: process.env.SMTP_PASSWORD }
-});
+// --- RESEND.COM CONFIGURATION ---
+const resend = new Resend(process.env.RESEND_API_KEY);
+const domain = process.env.APP_DOMAIN;
+
+// --- PROFESSIONAL 'FROM' ADDRESSES ---
+const FROM_ADDRESSES = {
+    info:         `"E-Visiton" <info@${domain}>`,
+    support:      `"E-Visiton Support" <support@${domain}>`,
+    partnerships: `"E-Visiton Partnerships" <partnerships@${domain}>`,
+    security:     `"E-Visiton Security" <no-reply@${domain}>`,
+    billing:      `"E-Visiton Billing" <billing@${domain}>`
+};
 
 // --- Master Branded Email Template ---
 const createBrandedEmail = (content, options = {}) => {
     const brandColor = "#EA850C";
     const accentColor = "#2A5CAA";
     const year = new Date().getFullYear();
-    const logoUrl = 'https://yourdomain.com/e-visit-logo.png'; // Update with your production domain
+    const logoUrl = 'https://api.e-visiton.com/e-visiton-white.png';
     const { preheader = '', cta = null } = options;
 
     return `
@@ -58,11 +65,10 @@ const createBrandedEmail = (content, options = {}) => {
             </div>
             <div class="footer">
                 <p>© ${year} E-Visit. All rights reserved.</p>
-                <p>Prishtina, Kosovo | <a href="https://yourdomain.com">Visit Website</a></p>
+                <p>Kaçanik, Kosovo | <a href="https://e-visiton.com">Visit Website</a></p>
                 <p style="margin-top: 10px;">
-                    <a href="https://facebook.com/evisit" style="margin: 0 5px;">Facebook</a> | 
-                    <a href="https://instagram.com/evisit" style="margin: 0 5px;">Instagram</a> | 
-                    <a href="https://linkedin.com/company/evisit" style="margin: 0 5px;">LinkedIn</a>
+                    <a href="https://facebook.com/e.visiton" style="margin: 0 5px;">Facebook</a> | 
+                    <a href="https://instagram.com/e.visiton" style="margin: 0 5px;">Instagram</a>
                 </p>
             </div>
         </div>
@@ -70,17 +76,13 @@ const createBrandedEmail = (content, options = {}) => {
     </html>
     `;
 };
-
-// --- FIX: Corrected helper function to populate the HTML template ---
-// It now takes htmlContent as an argument and returns the modified version.
+const formatCurrency = (amount) => `$${Number(amount || 0).toFixed(2)}`;
+// --- Helper Functions (These are kept as they are) ---
 const populateHtmlTemplate = (htmlContent, businessData) => {
     let populatedContent = htmlContent;
-
     const citySlug = (businessData.city_slug || 'city').replace(/^\//, '');
     const slug = businessData.slug || 'your-business';
-    const qrCodeUrl = `https://yourdomain.com/${citySlug}/${slug}`;
-
-    // Replace all placeholders with data or defaults
+    const qrCodeUrl = `https://e-visiton.com/${citySlug}/${slug}`;
     populatedContent = populatedContent.replace(/{{title}}/g, businessData.title || 'Your Business');
     populatedContent = populatedContent.replace(/{{city}}/g, businessData.city_name || 'Your City');
     populatedContent = populatedContent.replace(/{{email}}/g, businessData.contact_email || 'contact@example.com');
@@ -91,69 +93,54 @@ const populateHtmlTemplate = (htmlContent, businessData) => {
     populatedContent = populatedContent.replace(/{{slug}}/g, slug);
     populatedContent = populatedContent.replace(/{{city_slug}}/g, citySlug);
     populatedContent = populatedContent.replace(/{{qr_code_url}}/g, qrCodeUrl);
-    
     return populatedContent;
 };
 
-// --- Image Generation Helper (PNG) ---
 const generateVisitCardImage = async (businessData) => {
     let browser;
     try {
         const templatePath = path.join(__dirname, '..', 'templates', 'businessVisitCardTemplate.html');
         let htmlContent = await fs.readFile(templatePath, 'utf8');
-        
-        // --- FIX: Call the helper function to populate the HTML ---
         htmlContent = populateHtmlTemplate(htmlContent, businessData);
-
-        browser = await puppeteer.launch({
-            args: ['--no-sandbox', '--disable-setuid-sandbox'],
-            headless: 'new'
-        });
-
+        browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'], headless: 'new' });
         const page = await browser.newPage();
-        
-        await page.setViewport({
-            width: 1050,  // 3.5 inches * 300 DPI
-            height: 600,  // 2 inches * 300 DPI
-            deviceScaleFactor: 2
-        });
-
+        await page.setViewport({ width: 1050, height: 600, deviceScaleFactor: 2 });
         await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
-
         const cardElement = await page.$('.card-container');
-        if (!cardElement) {
-            throw new Error("Card container element (.card-container) not found in the HTML template.");
-        }
-
-        const imageBuffer = await cardElement.screenshot({
-            type: 'png',
-            omitBackground: true
-        });
-
+        if (!cardElement) throw new Error("Card container element (.card-container) not found.");
+        const imageBuffer = await cardElement.screenshot({ type: 'png', omitBackground: true });
         await browser.close();
         return imageBuffer;
-
     } catch (error) {
         if (browser) await browser.close();
         console.error('Error generating visit card image:', error);
-        throw new Error('Failed to generate business visit card. Please try again later.');
+        throw new Error('Failed to generate business visit card.');
     }
 };
 
-// --- PROFESSIONAL EMAIL TEMPLATES ---
+// --- ROBUST EMAIL SENDING WRAPPER ---
+async function sendEmail(payload) {
+    const { data, error } = await resend.emails.send(payload);
+
+    if (error) {
+        console.error(`Resend API Error for subject "${payload.subject}":`, JSON.stringify(error, null, 2));
+        throw new Error(`Failed to send email. Resend Error: ${error.message}`);
+    }
+
+    console.log(`Email sent successfully via Resend. ID: ${data.id}`);
+    return data;
+}
+
+// --- PROFESSIONAL EMAIL TEMPLATES (UPDATED FOR ROBUSTNESS) ---
 
 // 1. Business Welcome Email
 exports.sendBusinessWelcomeEmail = async (userEmail, userName, businessData) => {
     try {
         const attachmentBuffer = await generateVisitCardImage(businessData);
-        const attachmentOptions = {
-            filename: `${businessData.slug || 'business'}-visit-card.png`,
-            content: attachmentBuffer,
-            contentType: 'image/png',
-        };
-       
-    
-        
+        if (!attachmentBuffer || attachmentBuffer.length === 0) {
+            throw new Error('Generated visit card image buffer is empty or invalid. Cannot send email.');
+        }
+
         const emailContent = `
             <h2>Welcome to E-Visit, ${userName || 'Partner'}!</h2>
             <p>We're thrilled to welcome <strong>${businessData.title || 'your business'}</strong> to the E-Visit platform. Your business is now part of Kosovo's premier digital business directory.</p>
@@ -170,178 +157,179 @@ exports.sendBusinessWelcomeEmail = async (userEmail, userName, businessData) => 
             <strong>E-Visit Partnership Team</strong></p>
         `;
         
-        return transporter.sendMail({
-            from: `"E-Visit Partnerships" <${process.env.SMTP_EMAIL}>`,
+        const payload = {
+            from: FROM_ADDRESSES.partnerships,
             to: userEmail,
             subject: `🚀 Welcome to E-Visit, ${businessData.title || 'New Partner'}!`,
             html: createBrandedEmail(emailContent, {
                 preheader: `Get started with your new E-Visit business profile for ${businessData.title || 'your business'}`,
-                
             }),
-            attachments: [attachmentOptions],
-        });
+            attachments: [{
+                filename: `${businessData.slug || 'business'}-visit-card.png`,
+                content: attachmentBuffer,
+            }],
+        };
+        return await sendEmail(payload);
     } catch (error) {
-        console.error("Error sending business welcome email:", error);
+        console.error("Critical error in sendBusinessWelcomeEmail:", error);
         throw error;
     }
 };
 
 // 2. Verification Email
 exports.sendVerificationEmail = async (email, code) => {
- 
-  const emailContent = `
-    <h2>Verify Your Email Address</h2>
-    <p>Thank you for creating an account with E-Visit. To complete your registration, please verify your email address by entering the following code on our website:</p>
-    <div class="code-box"><span class="code">${code}</span></div>
-    <p>This verification code will expire in <strong>10 minutes</strong>. For your security, please do not share this code with anyone.</p>
-    <p>If you didn't create an E-Visit account, you can safely ignore this email.</p>
-  `;
-  
-  return transporter.sendMail({
-    from: `"E-Visit Security" <${process.env.SMTP_EMAIL}>`,
-    to: email,
-    subject: "Verify Your E-Visit Account",
-    html: createBrandedEmail(emailContent, {
-        preheader: `Your E-Visit verification code: ${code}`,
-       
-    }),
-  });
+    const emailContent = `
+      <h2>Verify Your Email Address</h2>
+      <p>Thank you for creating an account with E-Visit. To complete your registration, please verify your email address by entering the following code on our website:</p>
+      <div class="code-box"><span class="code">${code}</span></div>
+      <p>This verification code will expire in <strong>10 minutes</strong>. For your security, please do not share this code with anyone.</p>
+      <p>If you didn't create an E-Visit account, you can safely ignore this email.</p>
+    `;
+    const payload = {
+        from: FROM_ADDRESSES.security,
+        to: email,
+        subject: "Verify Your E-Visit Account",
+        html: createBrandedEmail(emailContent, {
+            preheader: `Your E-Visit verification code: ${code}`,
+        }),
+    };
+    return await sendEmail(payload);
 };
 
 // 3. Password Reset Email
 exports.sendResetCodeEmail = async (email, code) => {
-  
-  const emailContent = `
-    <h2>Password Reset Request</h2>
-    <p>We received a request to reset the password for your E-Visit account. To proceed, please use the following verification code:</p>
-    <div class="code-box"><span class="code">${code}</span></div>
-    <p>This code will expire in <strong>10 minutes</strong>. For your security, please do not share this code with anyone.</p>
-    <p style="color: #DC2626;"><strong>Important:</strong> If you didn't request a password reset, please contact our support team immediately at <a href="mailto:support@evisit.com">support@evisit.com</a>.</p>
-  `;
-  
-  return transporter.sendMail({
-    from: `"E-Visit Security" <${process.env.SMTP_EMAIL}>`,
-    to: email,
-    subject: "E-Visit Password Reset Request",
-    html: createBrandedEmail(emailContent, {
-        preheader: `Your E-Visit password reset code: ${code}`,
-       
-    }),
-  });
+    const emailContent = `
+      <h2>Password Reset Request</h2>
+      <p>We received a request to reset the password for your E-Visit account. To proceed, please use the following verification code:</p>
+      <div class="code-box"><span class="code">${code}</span></div>
+      <p>This code will expire in <strong>10 minutes</strong>. For your security, please do not share this code with anyone.</p>
+      <p style="color: #DC2626;"><strong>Important:</strong> If you didn't request a password reset, please contact our support team immediately at <a href="mailto:support@${domain}">support@${domain}</a>.</p>
+    `;
+    const payload = {
+        from: FROM_ADDRESSES.security,
+        to: email,
+        subject: "E-Visit Password Reset Request",
+        html: createBrandedEmail(emailContent, {
+            preheader: `Your E-Visit password reset code: ${code}`,
+        }),
+    };
+    return await sendEmail(payload);
 };
 
 // 4. Contact Form Confirmation
 exports.sendContactConfirmation = async (email, name, message) => {
-  const emailContent = `
-    <h2>Thank You for Contacting E-Visit</h2>
-    <p>Dear ${name},</p>
-    <p>We've received your message and appreciate you reaching out to us. Our team typically responds within <strong>24-48 hours</strong> during business days.</p>
-    <h3>Your Message:</h3>
-    <div class="quote">${message}</div>
-    <p>For your records, here's a summary of your inquiry:</p>
-    <ul style="padding-left: 20px; margin: 15px 0;">
-        <li style="margin-bottom: 8px;"><strong>Submitted:</strong> ${new Date().toLocaleString()}</li>
-        <li style="margin-bottom: 8px;"><strong>Contact Email:</strong> ${email}</li>
-    </ul>
-    <p>If you need immediate assistance, please call our support line at +383 49 000 000.</p>
-    <p>Best regards,<br>
-    <strong>E-Visit Customer Support</strong></p>
-  `;
-  
-  return transporter.sendMail({
-    from: `"E-Visit Support" <${process.env.SMTP_EMAIL}>`,
-    to: email,
-    subject: "We've Received Your Message",
-    html: createBrandedEmail(emailContent, {
-        preheader: "Thank you for contacting E-Visit. We've received your message."
-    }),
-  });
+    const emailContent = `
+      <h2>Thank You for Contacting E-Visit</h2>
+      <p>Dear ${name},</p>
+      <p>We've received your message and appreciate you reaching out to us. Our team typically responds within <strong>24-48 hours</strong> during business days.</p>
+      <h3>Your Message:</h3>
+      <div class="quote">${message}</div>
+      <p>For your records, here's a summary of your inquiry:</p>
+      <ul style="padding-left: 20px; margin: 15px 0;">
+          <li style="margin-bottom: 8px;"><strong>Submitted:</strong> ${new Date().toLocaleString()}</li>
+          <li style="margin-bottom: 8px;"><strong>Contact Email:</strong> ${email}</li>
+      </ul>
+      <p>If you need immediate assistance, please call our support line at +383 49 548 009.</p>
+      <p>Best regards,<br>
+      <strong>E-Visit Customer Support</strong></p>
+    `;
+    const payload = {
+        from: FROM_ADDRESSES.support,
+        to: email,
+        subject: "We've Received Your Message",
+        html: createBrandedEmail(emailContent, {
+            preheader: "Thank you for contacting E-Visit. We've received your message."
+        }),
+    };
+    return await sendEmail(payload);
 };
 
 // 5. Admin Reply to Contact
 exports.sendReplyToContact = async (to, subject, message) => {
-  const emailContent = `
-    <h2>${subject}</h2>
-    ${message}
-    <div class="divider"></div>
-    <p>If you have any further questions, please reply to this email or contact our support team.</p>
-    <p>Best regards,<br>
-    <strong>E-Visit Support Team</strong></p>
-  `;
-  
-  return transporter.sendMail({
-    from: `"E-Visit Support" <${process.env.SMTP_EMAIL}>`,
-    to: to,
-    subject: `Re: ${subject}`,
-    html: createBrandedEmail(emailContent),
-  });
+    const emailContent = `
+      <h2>${subject}</h2>
+      ${message}
+      <div class="divider"></div>
+      <p>If you have any further questions, please reply to this email or contact our support team.</p>
+      <p>Best regards,<br>
+      <strong>E-Visit Support Team</strong></p>
+    `;
+    const payload = {
+        from: FROM_ADDRESSES.support,
+        to: to,
+        subject: `Re: ${subject}`,
+        html: createBrandedEmail(emailContent),
+    };
+    return await sendEmail(payload);
 };
 
 // 6. Collaboration Form Confirmation
 exports.sendCollaborationConfirmation = async (email, name) => {
-  const emailContent = `
-    <h2>Thank You for Your Partnership Interest</h2>
-    <p>Dear ${name},</p>
-    <p>We appreciate your interest in collaborating with E-Visit. Our partnerships team has received your proposal and will review it carefully.</p>
-    <h3>What to Expect Next:</h3>
-    <ul style="padding-left: 20px; margin: 15px 0;">
-        <li style="margin-bottom: 8px;">Initial review within <strong>3-5 business days</strong></li>
-        <li style="margin-bottom: 8px;">Follow-up from our partnerships team</li>
-        <li style="margin-bottom: 8px;">Potential meeting to discuss opportunities</li>
-    </ul>
-    <p>We value innovative partnerships that align with our mission to connect businesses with customers throughout Kosovo.</p>
-    <p>For immediate inquiries, please contact our partnerships team at <a href="mailto:partnerships@evisit.com">partnerships@evisit.com</a>.</p>
-    <p>Best regards,<br>
-    <strong>E-Visit Partnerships Team</strong></p>
-  `;
-  
-  return transporter.sendMail({
-    from: `"E-Visit Partnerships" <${process.env.SMTP_EMAIL}>`,
-    to: email,
-    subject: "We've Received Your Collaboration Request",
-    html: createBrandedEmail(emailContent, {
-        preheader: "Thank you for your interest in partnering with E-Visit"
-    }),
-  });
+    const emailContent = `
+      <h2>Thank You for Your Partnership Interest</h2>
+      <p>Dear ${name},</p>
+      <p>We appreciate your interest in collaborating with E-Visit. Our partnerships team has received your proposal and will review it carefully.</p>
+      <h3>What to Expect Next:</h3>
+      <ul style="padding-left: 20px; margin: 15px 0;">
+          <li style="margin-bottom: 8px;">Initial review within <strong>3-5 business days</strong></li>
+          <li style="margin-bottom: 8px;">Follow-up from our partnerships team</li>
+          <li style="margin-bottom: 8px;">Potential meeting to discuss opportunities</li>
+      </ul>
+      <p>We value innovative partnerships that align with our mission to connect businesses with customers throughout Kosovo.</p>
+      <p>For immediate inquiries, please contact our partnerships team at <a href="mailto:partnerships@${domain}">partnerships@${domain}</a>.</p>
+      <p>Best regards,<br>
+      <strong>E-Visit Partnerships Team</strong></p>
+    `;
+    const payload = {
+        from: FROM_ADDRESSES.partnerships,
+        to: email,
+        subject: "We've Received Your Collaboration Request",
+        html: createBrandedEmail(emailContent, {
+            preheader: "Thank you for your interest in partnering with E-Visit"
+        }),
+    };
+    return await sendEmail(payload);
 };
 
-// 7. New Feature Announcement (Example of additional template)
+// 7. New Feature Announcement
 exports.sendFeatureAnnouncement = async (email, name) => {
-  
-  const emailContent = `
-    <h2>Exciting New Features Now Available</h2>
-    <p>Dear ${name},</p>
-    <p>We're excited to share that E-Visit has launched powerful new features to help you connect with more customers:</p>
-    <h3>What's New:</h3>
-    <ul style="padding-left: 20px; margin: 15px 0;">
-        <li style="margin-bottom: 8px;"><strong>Advanced Analytics:</strong> Track visitor engagement in real-time</li>
-        <li style="margin-bottom: 8px;"><strong>Promotional Tools:</strong> Create special offers visible to all E-Visit users</li>
-        <li style="margin-bottom: 8px;"><strong>Mobile Optimization:</strong> Improved experience for mobile visitors</li>
-    </ul>
-    <p>These features are available now in your business dashboard.</p>
-  `;
-  
-  return transporter.sendMail({
-    from: `"E-Visit Updates" <${process.env.SMTP_EMAIL}>`,
-    to: email,
-    subject: "New Features Available on E-Visit",
-    html: createBrandedEmail(emailContent, {
-        preheader: "Discover the latest features now available on E-Visit",
-       
-    }),
-  });
+    const emailContent = `
+      <h2>Exciting New Features Now Available</h2>
+      <p>Dear ${name},</p>
+      <p>We're excited to share that E-Visit has launched powerful new features to help you connect with more customers:</p>
+      <h3>What's New:</h3>
+      <ul style="padding-left: 20px; margin: 15px 0;">
+          <li style="margin-bottom: 8px;"><strong>Advanced Analytics:</strong> Track visitor engagement in real-time</li>
+          <li style="margin-bottom: 8px;"><strong>Promotional Tools:</strong> Create special offers visible to all E-Visit users</li>
+          <li style="margin-bottom: 8px;"><strong>Mobile Optimization:</strong> Improved experience for mobile visitors</li>
+      </ul>
+      <p>These features are available now in your business dashboard.</p>
+    `;
+    const payload = {
+        from: FROM_ADDRESSES.info,
+        to: email,
+        subject: "New Features Available on E-Visit",
+        html: createBrandedEmail(emailContent, {
+            preheader: "Discover the latest features now available on E-Visit",
+        }),
+    };
+    return await sendEmail(payload);
 };
-// --- ADD THE NEW RECEIPT EMAIL FUNCTION ---
-/**
- * Sends a purchase receipt email with a PDF attachment.
- * @param {object} user - The user object (must contain name and email).
- * @param {object} receiptData - The receipt record from the database.
- * @param {Buffer} pdfBuffer - The generated PDF as a buffer.
- * @returns {Promise} A promise from Nodemailer's sendMail function.
- */
-exports.sendReceiptEmail = async (user, receiptData, pdfBuffer) => {
+
+// 8. Receipt Email
+// utils/nodemailer.js - ADD THIS NEW FUNCTION
+
+// 8. Receipt Email
+exports.sendReceiptEmail = async (user, receiptData, pdfData) => {
     try {
-        console.log(`[Email] Preparing receipt email for: ${user.email}`);
+        // Reconstruct the data into a real Buffer to guarantee it's correct.
+        const pdfBuffer = Buffer.from(pdfData);
+
+        console.log(`[Nodemailer - Receipt] Reconstructed buffer. Type: ${Buffer.isBuffer(pdfBuffer)}, Length: ${pdfBuffer.length}`);
+
+        if (pdfBuffer.length === 0) {
+            throw new Error("Reconstructed receipt buffer is empty.");
+        }
 
         const emailContent = `
             <h2>Your Purchase from E-Visit</h2>
@@ -352,9 +340,8 @@ exports.sendReceiptEmail = async (user, receiptData, pdfBuffer) => {
             <p style="margin-top: 25px;">Best regards,<br>
             <strong>The E-Visit Team</strong></p>
         `;
-
-        const mailOptions = {
-            from: `"E-Visit Billing" <${process.env.SMTP_EMAIL}>`,
+        const payload = {
+            from: FROM_ADDRESSES.billing,
             to: user.email,
             subject: `Your E-Visit Receipt [${receiptData.receipt_number}]`,
             html: createBrandedEmail(emailContent, {
@@ -363,99 +350,115 @@ exports.sendReceiptEmail = async (user, receiptData, pdfBuffer) => {
             attachments: [{
                 filename: `receipt-${receiptData.receipt_number}.pdf`,
                 content: pdfBuffer,
-                contentType: 'application/pdf'
             }]
         };
 
-        return transporter.sendMail(mailOptions);
+        console.log(`[Nodemailer - Receipt] Sending receipt #${receiptData.receipt_number} to ${user.email}.`);
+        return await sendEmail(payload);
     } catch (error) {
-        console.error("Error preparing or sending receipt email:", error);
-        throw error; // Propagate the error up to the webhook handler
+        console.error("Critical error in sendReceiptEmail function:", error.stack);
+        throw error;
     }
 };
-/**
- * Sends an invoice email with a PDF attachment.
- * @param {object} invoice - The full invoice record from the database.
- * @param {Buffer} pdfBuffer - The generated invoice PDF as a buffer.
- * @returns {Promise} A promise from Nodemailer's sendMail function.
- */
-exports.sendInvoiceEmail = async (invoice, pdfBuffer) => {
+// 9. Invoice Email
+exports.sendInvoiceEmail = async (invoice, pdfData) => { // Renamed to pdfData for clarity
     try {
-        console.log(`[Email] Preparing invoice email with PDF attachment for: ${invoice.recipient_email}`);
+        //
+        // THE DEFINITIVE FIX IS HERE:
+        // We take the data that arrives (which we know isn't a true Buffer)
+        // and we reconstruct it into a real, valid Buffer object.
+        //
+        const pdfBuffer = Buffer.from(pdfData);
 
-        // Helper function to format dates nicely, in case they are not pre-formatted.
+        // Log to prove the fix works. This will now say "Type: true".
+        console.log(`[Nodemailer] Reconstructed buffer. Type: ${Buffer.isBuffer(pdfBuffer)}, Length: ${pdfBuffer.length}`);
+
+        if (pdfBuffer.length === 0) {
+            throw new Error("Reconstructed buffer is empty.");
+        }
+
         const formatDate = (date) => new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-
+        
         const emailContent = `
             <h2>Your Invoice from E-Visit</h2>
             <p>Dear ${invoice.recipient_name},</p>
             <p>Please find your invoice (<strong>#${invoice.invoice_number}</strong>) attached to this email for your records.</p>
-            <p>The total amount due is <strong>$${Number(invoice.total_amount).toFixed(2)}</strong>, with a due date of <strong>${formatDate(invoice.due_date)}</strong>.</p>
+            <p>The total amount due is <strong>${formatCurrency(invoice.total_amount)}</strong>, with a due date of <strong>${formatDate(invoice.due_date)}</strong>.</p>
             <p>If you have any questions about this invoice, please don't hesitate to reply to this email.</p>
             <p style="margin-top: 25px;">Thank you for your business,<br>
             <strong>The E-Visit Team</strong></p>
         `;
-
-        const mailOptions = {
-            from: `"E-Visit Invoicing" <${process.env.SMTP_EMAIL}>`,
+        
+        const payload = {
+            from: FROM_ADDRESSES.billing,
             to: invoice.recipient_email,
             subject: `Invoice [${invoice.invoice_number}] from E-Visit`,
-            html: createBrandedEmail(emailContent, { // Using your branded wrapper
-                preheader: `Your invoice for $${Number(invoice.total_amount).toFixed(2)} from E-Visit.`
+            html: createBrandedEmail(emailContent, {
+                preheader: `Your invoice for ${formatCurrency(invoice.total_amount)} from E-Visit.`
             }),
-            attachments: [{ // Attaching the generated PDF
+            attachments: [{
                 filename: `invoice-${invoice.invoice_number}.pdf`,
+                // We now provide the newly reconstructed, 100% valid buffer.
                 content: pdfBuffer,
-                contentType: 'application/pdf'
             }]
         };
 
-        return transporter.sendMail(mailOptions);
+        console.log(`[Nodemailer] Sending invoice #${invoice.invoice_number} with reconstructed Buffer.`);
+        
+        return await sendEmail(payload);
+
     } catch (error) {
-        console.error("Error preparing or sending invoice email:", error);
-        throw error; // Propagate the error up
+        console.error("Critical error in sendInvoiceEmail function (nodemailer.js):", error.stack);
+        throw error;
     }
 };
-/*
-* @param {object} offer - The full offer record from the database.
- * @param {Buffer} pdfBuffer - The generated offer PDF as a buffer.
- * @returns {Promise} A promise from Nodemailer's sendMail function.
- */
-exports.sendOfferEmail = async (offer, pdfBuffer) => {
+
+
+// 10. Offer/Proposal Email
+exports.sendOfferEmail = async (offer, pdfData) => {
     try {
-        console.log(`[Email] Preparing offer email with PDF attachment for: ${offer.recipient_email}`);
+        // Reconstruct the data into a real Buffer, just like for invoices.
+        const pdfBuffer = Buffer.from(pdfData);
 
-        // Helper function to format dates nicely.
+        // Log to prove the fix works.
+        console.log(`[Nodemailer - Offer] Reconstructed buffer. Type: ${Buffer.isBuffer(pdfBuffer)}, Length: ${pdfBuffer.length}`);
+
+        if (pdfBuffer.length === 0) {
+            throw new Error("Reconstructed offer buffer is empty.");
+        }
+
         const formatDate = (date) => new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-
+        
         const emailContent = `
             <h2>Your Proposal from E-Visit</h2>
             <p>Dear ${offer.recipient_name},</p>
             <p>Thank you for the opportunity to present this offer. Please find our proposal (<strong>#${offer.offer_number}</strong>) attached to this email for your review.</p>
-            <p>The total proposed amount is <strong>$${Number(offer.total_amount).toFixed(2)}</strong>. This offer is valid until <strong>${formatDate(offer.valid_until)}</strong>.</p>
+            <p>The total proposed amount is <strong>${formatCurrency(offer.total_amount)}</strong>. This offer is valid until <strong>${formatDate(offer.valid_until)}</strong>.</p>
             <p>We are confident that we can meet your needs and look forward to the possibility of working with you. Please let us know if you have any questions.</p>
             <p style="margin-top: 25px;">Best regards,<br>
             <strong>The E-Visit Team</strong></p>
         `;
-
-        const mailOptions = {
-            // Using a different sender name to distinguish from invoicing.
-            from: `"E-Visit Proposals" <${process.env.SMTP_EMAIL}>`,
+        
+        const payload = {
+            // Using 'partnerships' or 'billing' FROM address makes sense here.
+            from: FROM_ADDRESSES.partnerships, 
             to: offer.recipient_email,
             subject: `Proposal [${offer.offer_number}] from E-Visit`,
-            html: createBrandedEmail(emailContent, { // Reusing your branded wrapper
-                preheader: `Your proposal for $${Number(offer.total_amount).toFixed(2)} from E-Visit.`
+            html: createBrandedEmail(emailContent, {
+                preheader: `Your proposal for ${formatCurrency(offer.total_amount)} from E-Visit.`
             }),
-            attachments: [{ // Attaching the generated offer PDF
+            attachments: [{
                 filename: `offer-${offer.offer_number}.pdf`,
                 content: pdfBuffer,
-                contentType: 'application/pdf'
             }]
         };
 
-        return transporter.sendMail(mailOptions);
+        console.log(`[Nodemailer - Offer] Sending offer #${offer.offer_number} with reconstructed Buffer.`);
+        
+        return await sendEmail(payload);
+
     } catch (error) {
-        console.error("Error preparing or sending offer email:", error);
-        throw error; // Propagate the error up
+        console.error("Critical error in sendOfferEmail function (nodemailer.js):", error.stack);
+        throw error;
     }
 };
