@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node e-visiton.js"
   },
   "keywords": [],
   "author": "",
@@ -22,6 +22,7 @@
     "node-fetch": "^2.7.0",
     "nodemailer": "^7.0.3",
     "puppeteer": "^24.11.2",
+    "resend": "^4.6.0",
     "slugify": "^1.6.6",
     "stripe": "^18.2.1"
   }
