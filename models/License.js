@@ -3,30 +3,64 @@
 const db = require('../config/db');
 
 const License = {
-    // Creates a new license for a user
+    /**
+     * <<<<<<<<<<<<<<<<<<<<<<<< THE FINAL FIX IS HERE >>>>>>>>>>>>>>>>>>>>
+     * This 'create' function has been corrected to handle the 'current_period_end' date.
+     */
     create: async (licenseData) => {
-        const { userId, stripeSessionId } = licenseData;
+        // Step 1: Correctly destructure ALL the required fields, including the date.
+        const { userId, plan_type, subscriptionStatus, stripeSessionId, stripeSubscriptionId, current_period_end } = licenseData;
         
-        const expiresAt = new Date();
-        expiresAt.setFullYear(expiresAt.getFullYear() + 1); // License valid for 1 year
-        
+        // Step 2: Add the `current_period_end` column to the INSERT statement.
         const [result] = await db.query(
-            `INSERT INTO licenses (user_id, status, expires_at, stripe_session_id)
-             VALUES (?, 'active', ?, ?)`,
-            [userId, expiresAt, stripeSessionId]
+            `INSERT INTO licenses (user_id, plan_type, subscription_status, stripe_session_id, stripe_subscription_id, current_period_end)
+             VALUES (?, ?, ?, ?, ?, ?)`, // Step 3: Add the corresponding '?' placeholder.
+            [userId, plan_type, subscriptionStatus, stripeSessionId, stripeSubscriptionId, current_period_end] // Step 4: Add the date variable to the values array.
         );
         return result.insertId;
     },
 
-    // --- THIS IS THE NEW FUNCTION THAT WAS MISSING ---
-    // Finds a user's license, but ONLY if it is currently active (not expired).
+    // This function is now correct because it selects from a row that will have the correct date.
     findByUserId: async (userId) => {
         const [rows] = await db.query(
-            'SELECT * FROM licenses WHERE user_id = ? AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1',
+            "SELECT * FROM licenses WHERE user_id = ? AND subscription_status = 'active' ORDER BY created_at DESC LIMIT 1",
             [userId]
         );
-        // This will return the license object if found, or 'undefined' if not, which works perfectly.
         return rows[0];
+    },
+
+    // This findOne function is correct.
+    findOne: async (criteria) => {
+        const field = Object.keys(criteria)[0];
+        const value = Object.values(criteria)[0];
+
+        const validColumns = ['id', 'user_id', 'stripeSubscriptionId', 'stripeSessionId'];
+        if (!validColumns.includes(field)) {
+            throw new Error(`Invalid field name in findOne query: ${field}`);
+        }
+        
+        const columnMap = {
+            stripeSubscriptionId: 'stripe_subscription_id',
+            stripeSessionId: 'stripe_session_id',
+            userId: 'user_id',
+            id: 'id'
+        };
+        const dbColumn = columnMap[field] || field;
+
+        const [rows] = await db.query(`SELECT * FROM licenses WHERE ?? = ? LIMIT 1`, [dbColumn, value]);
+        return rows[0];
+    },
+
+    // This updateOne function is correct.
+    updateOne: async (criteria, updates) => {
+        const findField = Object.keys(criteria)[0];
+        const findValue = Object.values(criteria)[0];
+        
+        const columnMap = { stripeSubscriptionId: 'stripe_subscription_id' };
+        const dbColumn = columnMap[findField] || findField;
+
+        const [result] = await db.query('UPDATE licenses SET ? WHERE ?? = ?', [updates, dbColumn, findValue]);
+        return result.affectedRows > 0;
     }
 };
 

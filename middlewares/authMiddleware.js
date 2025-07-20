@@ -1,7 +1,13 @@
-const jwt = require('jsonwebtoken');
+// middlewares/authMiddleware.js
 
-// Your 'protect' middleware is excellent. No changes needed.
-exports.protect = (req, res, next) => {
+const jwt = require('jsonwebtoken');
+const User = require('../models/User'); // <<<<<<<< 1. IMPORT THE USER MODEL
+
+/**
+ * This is the corrected 'protect' middleware.
+ * It now fetches the full user object from the database after verifying the token.
+ */
+exports.protect = async (req, res, next) => { // <<<<<<<< 2. MAKE THE FUNCTION ASYNC
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -13,11 +19,20 @@ exports.protect = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Attach the payload from the token directly to req.user
-    req.user = {
-      id: decoded.id,
-      role: decoded.role
-    };
+    /**
+     * <<<<<<<<<<<<<<<<<<<<<<<< THIS IS THE FINAL FIX >>>>>>>>>>>>>>>>>>>>
+     * Instead of just attaching the decoded payload, we now use the ID from the token
+     * to fetch the COMPLETE user object from the database.
+     * This object includes the `stripe_customer_id` and all other user details.
+     */
+    const fullUser = await User.findById(decoded.id);
+
+    if (!fullUser) {
+        return res.status(401).json({ error: 'Not authorized, user not found.' });
+    }
+
+    // Attach the full, fresh user object to the request.
+    req.user = fullUser;
 
     next();
   } catch (err) {
@@ -25,12 +40,14 @@ exports.protect = (req, res, next) => {
   }
 };
 
-// This version provides a slightly more helpful error message.
+
+/**
+ * This 'authorizeRoles' middleware is now more robust because it receives
+ * the full user object from the corrected 'protect' middleware.
+ */
 exports.authorizeRoles = (...roles) => {
   return (req, res, next) => {
-    // This check is good, but we can make the error message more specific.
     if (!req.user || !roles.includes(req.user.role)) {
-      // The new error message tells the developer what role the user *has* vs what role is *required*.
       return res.status(403).json({ 
           error: `Access Denied. User role ('${req.user.role}') is not authorized for this route. Required roles: ${roles.join(', ')}`
       });

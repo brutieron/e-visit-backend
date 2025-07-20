@@ -38,5 +38,381 @@
       "en": "e-Visiton is a proud product of Shigjeta LLC, developed by our dedicated team to empower local tourism in Kosovo.",
       "sq": "e-Visiton është një produkt krenar i Shigjeta LLC, i zhvilluar nga ekipi ynë i përkushtuar për të fuqizuar turizmin lokal në Kosovë."
     }
+  },
+  {
+    "id": "1752494589151",
+    "intent": "welcome_greeting",
+    "responses": {
+      "en": "Welcome to e-Visiton! How can we help you explore Kosovo today?",
+      "sq": "Mirë se vini në e-Visiton! Si mund t’ju ndihmojmë të eksploroni Kosovën sot?"
+    }
+  },
+  {
+    "id": "1752494610075",
+    "intent": "about_mission",
+    "responses": {
+      "en": "e-Visiton is Kosovo’s first smart digital platform to help you discover Kosovo and empower real people.",
+      "sq": " e-Visiton është platforma e parë digjitale inteligjente në Kosovë për t’ju ndihmuar të zbuloni Kosovën dhe të fuqizoni njerëzit e vërtetë."
+    }
+  },
+  {
+    "id": "1752494632424",
+    "intent": "how_it_works",
+    "responses": {
+      "en": " Simply browse cities, explore listings, save favorites, and support locals!",
+      "sq": " Shfletoni qytetet, eksploroni bizneset, ruani të preferuarat dhe mbështesni vendorët!"
+    }
+  },
+  {
+    "id": "1752494651983",
+    "intent": "install_app_pwa",
+    "responses": {
+      "en": "e-Visiton is a PWA. Add it to your home screen for an app-like experience!",
+      "sq": "e-Visiton është një PWA. Shtojeni në ekranin tuaj për përvojë si aplikacion!"
+    }
+  },
+  {
+    "id": "1752494681888",
+    "intent": "explore_all_cities",
+    "responses": {
+      "en": "You can explore all 38 municipalities of Kosovo via our map.",
+      "sq": "Mund të eksploroni të 38 komunat e Kosovës përmes hartës sonë."
+    }
+  },
+  {
+    "id": "1752494704914",
+    "intent": "city_details",
+    "responses": {
+      "en": "Each city has its own page with attractions, events, and businesses.",
+      "sq": "Çdo qytet ka faqen e vet me atraksione, ngjarje dhe biznese."
+    }
+  },
+  {
+    "id": "1752494719265",
+    "intent": "handpicked_today",
+    "responses": {
+      "en": "Discover handpicked places recommended just for you today!",
+      "sq": "Zbuloni vende të përzgjedhura posaçërisht për ju sot!"
+    }
+  },
+  {
+    "id": "1752494740558",
+    "intent": "business_search",
+    "responses": {
+      "en": "What are you looking for? Cafes, art, tours? Use the search bar.",
+      "sq": "Çfarë po kërkoni? Kafene, art, ture? Përdorni shiritin e kërkimit."
+    }
+  },
+  {
+    "id": "1752494755550",
+    "intent": "business_filter",
+    "responses": {
+      "en": "Apply filters by category, accessibility, or interest.",
+      "sq": "Aplikoni filtra sipas kategorisë, qasjes ose interesit."
+    }
+  },
+  {
+    "id": "1752494771183",
+    "intent": "view_business",
+    "responses": {
+      "en": "Tap a business to view photos, descriptions, and reviews.",
+      "sq": "Shtypni një biznes për të parë fotot, përshkrimet dhe komentet."
+    }
+  },
+  {
+    "id": "1752494786694",
+    "intent": " leave_review",
+    "responses": {
+      "en": "You can leave a review for any place you visit.",
+      "sq": "Mund të lini një koment për çdo vend që vizitoni."
+    }
+  },
+  {
+    "id": "1752494806263",
+    "intent": "edit_review",
+    "responses": {
+      "en": "Yes, you can edit or delete your reviews anytime.",
+      "sq": "Po, mund të ndryshoni ose fshini komentet tuaja në çdo kohë."
+    }
+  },
+  {
+    "id": "1752494822520",
+    "intent": "favorite_place",
+    "responses": {
+      "en": "Tap the heart icon to save your favorite places.",
+      "sq": " Shtypni ikonën e zemrës për të ruajtur vendet e preferuara."
+    }
+  },
+  {
+    "id": "1752494837968",
+    "intent": "show_favorites",
+    "responses": {
+      "en": "View all your favorites from your profile dashboard.",
+      "sq": "Shikoni të preferuarat tuaja nga paneli i profilit."
+    }
+  },
+  {
+    "id": "1752494854989",
+    "intent": "map_help",
+    "responses": {
+      "en": "Use the interactive map to explore businesses by location.",
+      "sq": "Përdorni hartën interaktive për të eksploruar biznese sipas lokacionit."
+    }
+  },
+  {
+    "id": "1752494872617",
+    "intent": "cookie_policy",
+    "responses": {
+      "en": "We use cookies to enhance your experience.",
+      "sq": "Ne përdorim cookies për të përmirësuar përvojën tuaj."
+    }
+  },
+  {
+    "id": "1752494892641",
+    "intent": "data_tracking",
+    "responses": {
+      "en": " Analytics are used only after your consent. Your privacy matters.",
+      "sq": "Analitika përdoret vetëm me pëlqimin tuaj. Privatësia juaj është e rëndësishme."
+    }
+  },
+  {
+    "id": "1752494911791",
+    "intent": " contact_support",
+    "responses": {
+      "en": " Contact us at support@e-visiton.com or via WhatsApp chat.",
+      "sq": "Na kontaktoni në support@e-visiton.com ose përmes WhatsApp-it."
+    }
+  },
+  {
+    "id": "1752494931041",
+    "intent": " change_language",
+    "responses": {
+      "en": "You can switch between English and Albanian anytime.",
+      "sq": "Mund të kaloni mes anglishtes dhe shqipes në çdo kohë."
+    }
+  },
+  {
+    "id": "1752494955903",
+    "intent": "what_are_evcoins",
+    "responses": {
+      "en": " E-Coins are digital credits used to boost business visibility.",
+      "sq": "E-Coins janë kredi digjitale për të rritur dukshmërinë e bizneseve."
+    }
+  },
+  {
+    "id": "1752494972609",
+    "intent": " latest_updates",
+    "responses": {
+      "en": "We’re constantly adding new features—stay tuned!",
+      "sq": "Ne shtojmë vazhdimisht veçori të reja—qëndroni me ne!"
+    }
+  },
+  {
+    "id": "1752494992667",
+    "intent": "search_help",
+    "responses": {
+      "en": "Not sure what to search? Start by city or keyword.",
+      "sq": "Nuk dini çfarë të kërkoni? Filloni me qytetin ose fjalën kyçe."
+    }
+  },
+  {
+    "id": "1752495010167",
+    "intent": "mobile_friendly",
+    "responses": {
+      "en": "e-Visiton is fully mobile-optimized for any device.",
+      "sq": " e-Visiton është plotësisht i optimizuar për pajisje mobile."
+    }
+  },
+  {
+    "id": "1752495029264",
+    "intent": "share_platform",
+    "responses": {
+      "en": " Love e-Visiton? Share it with friends and family!",
+      "sq": "Ju pëlqeu e-Visiton? Ndajeni me miqtë dhe familjen!"
+    }
+  },
+  {
+    "id": "1752495099040",
+    "intent": "business_recommendation",
+    "responses": {
+      "en": "Looking for suggestions? We recommend boosted and trending spots.",
+      "sq": "Po kërkoni sugjerime? Ne rekomandojmë vendet më të përzgjedhura dhe në trend."
+    }
+  },
+  {
+    "id": "1752495114916",
+    "intent": "leave_feedback",
+    "responses": {
+      "en": "We’d love your feedback—tell us how we’re doing!",
+      "sq": "Na intereson mendimi juaj—na tregoni si po ecim!"
+    }
+  },
+  {
+    "id": "1752495141093",
+    "intent": " business_register",
+    "responses": {
+      "en": "Ready to list your business? Sign up from the dashboard.",
+      "sq": "Gati për ta listuar biznesin tuaj? Regjistrohuni nga paneli."
+    }
+  },
+  {
+    "id": "1752495200204",
+    "intent": "business_login",
+    "responses": {
+      "en": "Log in to access your business dashboard and analytics.",
+      "sq": "Hyni për të pasur qasje në panelin dhe analizat e biznesit tuaj."
+    }
+  },
+  {
+    "id": "1752495271216",
+    "intent": "business_login",
+    "responses": {
+      "en": " Log in to access your business dashboard and analytics.",
+      "sq": " Hyni për të pasur qasje në panelin dhe analizat e biznesit tuaj."
+    }
+  },
+  {
+    "id": "1752495287799",
+    "intent": "edit_business",
+    "responses": {
+      "en": "You can edit your business details anytime.",
+      "sq": "Mund të ndryshoni të dhënat e biznesit tuaj në çdo kohë."
+    }
+  },
+  {
+    "id": "1752495304794",
+    "intent": "upload_business_photos",
+    "responses": {
+      "en": "Add photos to make your listing more attractive.",
+      "sq": "Shtoni foto për ta bërë listimin më tërheqës."
+    }
+  },
+  {
+    "id": "1752495326583",
+    "intent": "buy_ecoins",
+    "responses": {
+      "en": "Purchase E-Coins securely through your dashboard.",
+      "sq": "Blerja e E-Coins bëhet në mënyrë të sigurt përmes panelit tuaj."
+    }
+  },
+  {
+    "id": "1752495354130",
+    "intent": "boost_my_business",
+    "responses": {
+      "en": "Use your E-Coins to boost visibility on homepage and map.",
+      "sq": "Përdorni E-Coins për të rritur dukshmërinë në faqen kryesore dhe hartë."
+    }
+  },
+  {
+    "id": "1752495380202",
+    "intent": "track_listing_stats",
+    "responses": {
+      "en": "View your performance metrics—visits, favorites, and more.",
+      "sq": "Shikoni metrikat e performancës suaj—vizitat, të preferuarat dhe më shumë."
+    }
+  },
+  {
+    "id": "1752495395864",
+    "intent": " license_help",
+    "responses": {
+      "en": "Unsure about your license? Check its status on your dashboard.",
+      "sq": "Nuk jeni të sigurt për licencën tuaj? Kontrolloni nga paneli."
+    }
+  },
+  {
+    "id": "1752495413746",
+    "intent": "how_to_get_reviews",
+    "responses": {
+      "en": "Encourage customers to leave reviews on your listing.",
+      "sq": "Inkurajoni klientët të lënë komente në listimin tuaj."
+    }
+  },
+  {
+    "id": "1752495427780",
+    "intent": " respond_to_review",
+    "responses": {
+      "en": "You can reply to customer reviews directly.",
+      "sq": "Mund t’u përgjigjeni komenteve të klientëve direkt."
+    }
+  },
+  {
+    "id": "1752495446262",
+    "intent": "update_boost_plan",
+    "responses": {
+      "en": "Change or renew your boost duration from settings.",
+      "sq": "Ndryshoni ose rinovoni kohëzgjatjen e boost-it nga cilësimet."
+    }
+  },
+  {
+    "id": "1752495463921",
+    "intent": "cancel_boost_early",
+    "responses": {
+      "en": "Want to stop a boost early? Use the “cancel” option in dashboard.",
+      "sq": " Dëshironi të ndaloni një boost më herët? Përdorni opsionin “anulo”."
+    }
+  },
+  {
+    "id": "1752495486330",
+    "intent": "support_for_businesses",
+    "responses": {
+      "en": "Need help? Our business support team is ready to assist you.",
+      "sq": "Keni nevojë për ndihmë? Ekipi ynë i mbështetjes është këtu për ju."
+    }
+  },
+  {
+    "id": "1752495504702",
+    "intent": "report_a_bug",
+    "responses": {
+      "en": "Found a bug or issue? Report it through your dashboard.",
+      "sq": "Gjetët një problem? Raportojeni nga paneli juaj."
+    }
+  },
+  {
+    "id": "1752495520505",
+    "intent": "verify_listing",
+    "responses": {
+      "en": " Listings may require verification. Follow the steps on your dashboard.",
+      "sq": "Listimet mund të kërkojnë verifikim. Ndiqni hapat në panelin tuaj."
+    }
+  },
+  {
+    "id": "1752495533704",
+    "intent": "view_payouts",
+    "responses": {
+      "en": "Track your earnings and customer interest in real-time.",
+      "sq": " Ndiqni të ardhurat dhe interesin e klientëve në kohë reale."
+    }
+  },
+  {
+    "id": "1752495550988",
+    "intent": "multiple_locations",
+    "responses": {
+      "en": "Have more than one location? You can manage them all from your dashboard.",
+      "sq": "Keni më shumë se një lokacion? Mund t’i menaxhoni të gjitha nga paneli."
+    }
+  },
+  {
+    "id": "1752495566958",
+    "intent": "get_featured",
+    "responses": {
+      "en": " Want to be featured? Use boost or contact our marketing team.",
+      "sq": " Dëshironi të jeni të përzgjedhur? Përdorni boost ose kontaktoni ekipin tonë të marketingut."
+    }
+  },
+  {
+    "id": "1752495588556",
+    "intent": "view_transaction_history",
+    "responses": {
+      "en": "See all your past E-Coin purchases in one place.",
+      "sq": "Shikoni të gjitha blerjet e kaluara të E-Coin në një vend."
+    }
+  },
+  {
+    "id": "1752495606285",
+    "intent": "update_payment_method",
+    "responses": {
+      "en": " Update your card or payment method securely.",
+      "sq": "Përditësoni kartelën ose mënyrën tuaj të pagesës në mënyrë të sigurt."
+    }
   }
 ]

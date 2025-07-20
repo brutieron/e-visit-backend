@@ -1,26 +1,82 @@
-const stripe = require('../utils/stripe'); // The Stripe instance is now used by all functions here.
+// controllers/paymentController.js
+
+const stripe = require('../utils/stripe');
+const User = require('../models/User');
+const License = require('../models/License'); // This is needed for the cancel function
+
+// --- Subscription Plan Configuration ---
+const subscriptionPlans = {
+    'price_1Rml8NHIxC4T13ajfNl5fHAx': { name: 'Monthly Plan', coins_to_add: 5, plan_type: 'monthly' },
+    'price_1RmlCmHIxC4T13ajEjaMtYrT': { name: '6-Month Plan', coins_to_add: 10, plan_type: 'six-month' },
+    'price_1RmlE8HIxC4T13ajIZEBfrqM': { name: 'Yearly Plan', coins_to_add: 25, plan_type: 'yearly' },
+};
+
 
 /**
- * @desc    Creates a Stripe Checkout Session for buying EV-Coins (Stripe-hosted page).
- * @route   POST /api/payment/create-coin-checkout-session
+ * @desc    Creates a Stripe Subscription for the selected E-Visiton Pro plan.
+ * @route   POST /api/payment/create-subscription
  * @access  Private
  */
+exports.createSubscription = async (req, res) => {
+    const { priceId } = req.body;
+    const user = req.user;
+
+    if (!priceId || !subscriptionPlans[priceId]) {
+        return res.status(400).json({ error: 'Invalid subscription plan selected.' });
+    }
+
+    const planDetails = subscriptionPlans[priceId];
+
+    try {
+        let stripeCustomerId = user.stripe_customer_id;
+
+        if (!stripeCustomerId) {
+            const customer = await stripe.customers.create({
+                email: user.email,
+                name: user.name,
+                metadata: { userId: user.id },
+            });
+            stripeCustomerId = customer.id;
+            await User.updateStripeCustomerId(user.id, stripeCustomerId);
+        }
+
+        const subscription = await stripe.subscriptions.create({
+            customer: stripeCustomerId,
+            items: [{ price: priceId }],
+            payment_behavior: 'default_incomplete',
+            payment_settings: { save_default_payment_method: 'on_subscription' },
+            expand: ['latest_invoice.payment_intent'],
+            metadata: {
+                userId: user.id,
+                purchase_type: 'subscription',
+                plan_type: planDetails.plan_type,
+                coins_to_add: planDetails.coins_to_add,
+            }
+        });
+
+        res.send({
+            clientSecret: subscription.latest_invoice.payment_intent.client_secret,
+            subscriptionId: subscription.id,
+        });
+
+    } catch (err) {
+        console.error('Stripe Subscription Error:', err);
+        res.status(500).json({ error: 'Failed to create subscription.' });
+    }
+};
+
+
+// --- COIN PURCHASE CONTROLLERS (Unchanged) ---
 exports.createCoinCheckoutSession = async (req, res) => {
     const { name, unit_amount, coins_to_add } = req.body;
-    if (!name || !unit_amount || !coins_to_add) {
-        return res.status(400).json({ error: 'Missing payment package information.' });
-    }
+    if (!name || !unit_amount || !coins_to_add) return res.status(400).json({ error: 'Missing payment package information.' });
     try {
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
             mode: 'payment',
             line_items: [{ price_data: { currency: 'eur', product_data: { name }, unit_amount }, quantity: 1 }],
             customer_email: req.user.email,
-            metadata: { 
-                purchase_type: 'ev_coins', 
-                userId: req.user.id, 
-                coins_to_add 
-            },
+            metadata: { purchase_type: 'ev_coins', userId: req.user.id, coins_to_add },
             success_url: `${process.env.FRONTEND_URL}/dashboard/billing?payment_status=success`,
             cancel_url: `${process.env.FRONTEND_URL}/dashboard/billing`,
         });
@@ -31,66 +87,18 @@ exports.createCoinCheckoutSession = async (req, res) => {
     }
 };
 
-/**
- * @desc    Creates a Stripe Payment Intent for the custom, on-site license checkout.
- * @route   POST /api/payment/create-payment-intent
- * @access  Private
- * @updated - Price changed to €60.00 and includes a 20 E-Token bonus.
- */
-exports.createPaymentIntent = async (req, res) => {
-    const licenseAmount = 6000; // UPDATED: €60.00 in cents
-    const coinsWithLicense = 20;  // NEW: Coin bonus for buying a license
-
-    try {
-        const paymentIntent = await stripe.paymentIntents.create({
-            amount: licenseAmount,
-            currency: 'eur',
-            automatic_payment_methods: { enabled: true },
-            description: 'E-Visit Business License (1 Year) + 20 E-Tokens', // More descriptive
-            metadata: {
-                purchase_type: 'license',
-                userId: req.user.id,
-                coins_to_add: coinsWithLicense, // NEW: Pass coin bonus to webhook
-            }
-        });
-        res.send({
-            clientSecret: paymentIntent.client_secret,
-        });
-    } catch (err) {
-        console.error('Create Payment Intent Error:', err);
-        res.status(500).json({ error: 'Failed to create payment intent' });
-    }
-};
-
-/**
- * @desc    Creates a Stripe Payment Intent for the custom, on-site coin checkout.
- * @route   POST /api/payment/create-coin-payment-intent
- * @access  Private
- */
 exports.createCoinPaymentIntent = async (req, res) => {
     const { name, unit_amount, coins_to_add } = req.body;
-    if (!name || !unit_amount || !coins_to_add) {
-        return res.status(400).json({ error: 'Missing payment information.' });
-    }
-
+    if (!name || !unit_amount || !coins_to_add) return res.status(400).json({ error: 'Missing payment information.' });
     try {
         const paymentIntent = await stripe.paymentIntents.create({
-            amount: unit_amount, // e.g., 1000 for €10.00
+            amount: unit_amount,
             currency: 'eur',
             automatic_payment_methods: { enabled: true },
             description: `Purchase of ${name}`,
-            metadata: {
-                purchase_type: 'ev_coins', // To distinguish in webhook
-                userId: req.user.id,
-                coins_to_add: coins_to_add,
-            }
+            metadata: { purchase_type: 'ev_coins', userId: req.user.id, coins_to_add: coins_to_add, }
         });
-
-        // Send the secret key back to the frontend to render the payment form
-        res.send({
-            clientSecret: paymentIntent.client_secret,
-        });
-
+        res.send({ clientSecret: paymentIntent.client_secret });
     } catch (error) {
         console.error("Stripe Error (createCoinPaymentIntent):", error);
         res.status(500).send({ error: 'Failed to initialize payment.' });
@@ -98,40 +106,58 @@ exports.createCoinPaymentIntent = async (req, res) => {
 };
 
 
-// --- The function below is for the older, Stripe-hosted checkout page. ---
-// --- It has also been updated for consistency. ---
+// --- NEW: SUBSCRIPTION MANAGEMENT CONTROLLERS ---
 
 /**
- * @desc    Creates a Stripe Checkout Session for buying a license (Stripe-hosted page).
- * @route   POST /api/payment/create-checkout-session
+ * @desc    Creates a Stripe Customer Portal session for the user to manage their billing.
+ * @route   POST /api/payment/create-portal-session
  * @access  Private
- * @updated - Price changed to €60.00 and includes a 20 E-Token bonus.
  */
-exports.createLicenseCheckoutSession = async (req, res) => {
-  try {
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      mode: 'payment',
-      line_items: [{
-          price_data: {
-            currency: 'eur',
-            product_data: { name: 'E-Visit Business License (1 Year) + 20 E-Tokens' },
-            unit_amount: 6000, // UPDATED: €60.00
-          },
-          quantity: 1,
-      }],
-      customer_email: req.user.email,
-      metadata: {
-        purchase_type: 'license',
-        userId: req.user.id,
-        coins_to_add: 20, // NEW: Pass coin bonus to webhook
-      },
-      success_url: `${process.env.FRONTEND_URL}/dashboard/billing?payment_status=success`,
-      cancel_url: `${process.env.FRONTEND_URL}/dashboard/billing`,
-    });
-    res.json({ url: session.url });
-  } catch (err) {
-    console.error('Stripe License Error:', err);
-    res.status(500).json({ error: 'Failed to create license checkout session' });
-  }
+exports.createPortalSession = async (req, res) => {
+    try {
+
+
+        const user = req.user;
+        if (!user.stripe_customer_id) {
+            return res.status(400).json({ error: 'User is not a Stripe customer.' });
+        }
+
+        const portalSession = await stripe.billingPortal.sessions.create({
+            customer: user.stripe_customer_id,
+            return_url: `${process.env.FRONTEND_URL}/dashboard/purchases`,
+        });
+
+        res.json({ url: portalSession.url });
+    } catch (err) {
+        console.error('Stripe Portal Error:', err);
+        res.status(500).json({ error: 'Failed to create customer portal session.' });
+    }
+};
+
+/**
+ * @desc    Cancels the user's active subscription at the end of the period.
+ * @route   POST /api/payment/cancel-subscription
+ * @access  Private
+ */
+exports.cancelSubscription = async (req, res) => {
+    try {
+        const license = await License.findByUserId(req.user.id);
+        if (!license || !license.stripe_subscription_id) {
+            return res.status(404).json({ error: 'No active subscription found to cancel.' });
+        }
+
+        await stripe.subscriptions.update(license.stripe_subscription_id, {
+            cancel_at_period_end: true,
+        });
+
+        await License.updateOne(
+            { stripe_subscription_id: license.stripe_subscription_id },
+            { subscription_status: 'canceled' }
+        );
+
+        res.json({ message: 'Subscription successfully scheduled for cancellation.' });
+    } catch (err) {
+        console.error('Cancel Subscription Error:', err);
+        res.status(500).json({ error: 'Failed to cancel subscription.' });
+    }
 };
