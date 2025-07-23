@@ -1,4 +1,4 @@
-// controllers/invoiceController.js - FINAL CORRECTION FOR {{Status}}
+// controllers/invoiceController.js - FINAL CORRECTION FOR {{Status}} and improved error handling
 
 const Invoice = require('../models/invoiceModel');
 const { sendInvoiceEmail } = require('../utils/nodemailer');
@@ -38,8 +38,7 @@ async function generatePdfForInvoice(invoiceId) {
             address: 'Kaçanik, Kosovo',
             email: 'support@e-visiton.com',
         };
-
-        // --- THE FIX IS HERE ---
+        
         const statusText = invoice.status ? invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1) : 'Draft';
 
         const htmlContent = htmlTemplate
@@ -52,7 +51,6 @@ async function generatePdfForInvoice(invoiceId) {
             .replace(/{{invoice_number}}/g, invoice.invoice_number || 'N/A')
             .replace(/{{issue_date}}/g, formatDate(invoice.issue_date))
             .replace(/{{due_date}}/g, formatDate(invoice.due_date))
-            // This now correctly uses {{Status}} with a capital 'S'
             .replace(/{{Status}}/g, statusText) 
             .replace(/{{lineItems}}/g, lineItemsHtml)
             .replace(/{{subtotal}}/g, formatCurrency(invoice.subtotal))
@@ -86,7 +84,6 @@ async function generatePdfForInvoice(invoiceId) {
 }
 
 // --- Public controller functions ---
-// (These are unchanged but are included for completeness)
 
 exports.sendInvoiceByEmail = async (req, res) => {
     try {
@@ -127,7 +124,14 @@ exports.createInvoice = async (req, res) => {
         res.status(201).json(createdInvoice);
     } catch (error) {
         console.error('Error in createInvoice controller:', error);
-        res.status(500).json({ message: 'Server error while creating invoice.' });
+        // --- IMPROVEMENT ---
+        // The original error was a generic message. This now includes the specific
+        // database error message in the response, making it easier to debug issues
+        // like the "sequence not found" problem.
+        res.status(500).json({ 
+            message: 'Server error while creating invoice.',
+            error: error.message // Pass the specific error message to the client
+        });
     }
 };
 
@@ -142,7 +146,7 @@ exports.updateInvoice = async (req, res) => {
         res.status(200).json(updatedInvoice);
     } catch (error) {
         console.error('Error in updateInvoice controller:', error);
-        res.status(500).json({ message: 'Server error while updating invoice.' });
+        res.status(500).json({ message: 'Server error while updating invoice.', error: error.message });
     }
 };
 

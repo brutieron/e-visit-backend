@@ -1,9 +1,7 @@
-// controllers/offerController.js - ALL-IN-ONE VERSION
+// controllers/offerController.js - FINAL VERSION
 
 const Offer = require('../models/offerModel');
 const { sendOfferEmail } = require('../utils/nodemailer');
-
-// --- MODULES FOR PDF GENERATION ARE NOW HERE ---
 const fs = require('fs/promises');
 const path = require('path');
 const puppeteer = require('puppeteer');
@@ -15,23 +13,19 @@ async function generatePdfForOffer(offerId) {
     let browser;
     try {
         console.log(`[PDF Master - Offer] Starting generation for offer ID: ${offerId}`);
-        // 1. Fetch Offer
         const offer = await Offer.findById(offerId);
         if (!offer) {
             throw new Error(`Offer with ID ${offerId} not found.`);
         }
         console.log(`[PDF Master - Offer] Fetched offer #${offer.offer_number}`);
 
-        // 2. Read HTML Template
         const templatePath = path.join(__dirname, '..', 'templates', 'offerTemplate.html');
         const htmlTemplate = await fs.readFile(templatePath, 'utf-8');
         console.log(`[PDF Master - Offer] Read HTML template.`);
 
-        // 3. Define Helper Functions
         const formatCurrency = (amount) => `$${Number(amount || 0).toFixed(2)}`;
         const formatDate = (date) => new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-        // 4. Populate HTML
         const lineItemsHtml = offer.lineItems.map(item => `
             <tr>
                 <td class="description">${item.description || ''}</td>
@@ -68,7 +62,6 @@ async function generatePdfForOffer(offerId) {
             .replace(/{{notes}}/g, offer.notes || '')
             .replace(/{{currentYear}}/g, new Date().getFullYear());
         
-        // 5. Generate PDF
         console.log('[PDF Master - Offer] Launching Puppeteer...');
         browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
         const page = await browser.newPage();
@@ -92,7 +85,6 @@ async function generatePdfForOffer(offerId) {
         }
     }
 }
-
 
 // =================================================================
 //                  PUBLIC CONTROLLER FUNCTIONS FOR OFFERS
@@ -131,8 +123,6 @@ exports.downloadOfferPDF = async (req, res) => {
     }
 };
 
-// --- The rest of your functions remain unchanged ---
-
 exports.createOffer = async (req, res) => {
     try {
         const { recipientName, recipientEmail, lineItems, validUntil } = req.body;
@@ -144,7 +134,13 @@ exports.createOffer = async (req, res) => {
         res.status(201).json(createdOffer);
     } catch (error) {
         console.error('Error in createOffer controller:', error);
-        res.status(500).json({ message: 'Server error while creating offer.' });
+        // --- IMPROVEMENT ---
+        // This now includes the specific database error message in the response,
+        // making it clear that the 'offer' sequence is missing.
+        res.status(500).json({ 
+            message: 'Server error while creating offer.',
+            error: error.message // Pass the specific error message to the client
+        });
     }
 };
 
@@ -159,7 +155,7 @@ exports.updateOffer = async (req, res) => {
         res.status(200).json(updatedOffer);
     } catch (error) {
         console.error('Error in updateOffer controller:', error);
-        res.status(500).json({ message: 'Server error while updating offer.' });
+        res.status(500).json({ message: 'Server error while updating offer.', error: error.message });
     }
 };
 
